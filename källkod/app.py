@@ -50,7 +50,7 @@ UI_FILE = os.path.join(DATA_DIR, "installningar.json")
 # programmappen, t.ex. till en USB-sticka.
 MEDIA_DIR = os.path.join(ROOT, "paus")
 MAX_NAME = 80
-MAX_TEXT = 200
+MAX_TEXT = 400
 MAX_PAUSE_TEXT = 300
 
 PAUSE_DEFAULTS = {
@@ -220,7 +220,7 @@ class Api:
         self._display = {
             "talare": {"name": "", "party": ""},
             "textruta": {"text": ""},
-            "installningar": {"autoBredd": True},
+            "installningar": {"autoBredd": True, "datum": ""},
             "paus": dict(PAUSE_DEFAULTS),
         }
         try:
@@ -247,13 +247,19 @@ class Api:
                                    "party": str(party or "")[:30]}
         return self._write_display()
 
-    def set_textbox(self, text):
-        self._display["textruta"] = {"text": str(text or "")[:MAX_TEXT]}
+    def set_textbox(self, text, first=False):
+        # "first" betyder att det är textruta 0, den enda som visar datumet.
+        self._display["textruta"] = {"text": str(text or "")[:MAX_TEXT],
+                                     "first": bool(first)}
         return self._write_display()
 
     def set_options(self, options):
-        if isinstance(options, dict) and "autoBredd" in options:
-            self._display["installningar"]["autoBredd"] = bool(options["autoBredd"])
+        if isinstance(options, dict):
+            if "autoBredd" in options:
+                self._display["installningar"]["autoBredd"] = bool(options["autoBredd"])
+            if "datum" in options:
+                # Datumet längst till höger på textruta 0, skrivs för hand.
+                self._display["installningar"]["datum"] = str(options["datum"] or "")[:40]
         return self._write_display()
 
     def set_pause(self, settings):

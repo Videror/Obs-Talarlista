@@ -63,8 +63,10 @@
 
   /* ---------- Textrutan, alltid i mitten ---------- */
 
+  /* Textrutan har en fast höjd, men växer uppåt om en mycket lång text
+     inte får plats ens i minsta textstorlek. */
   #textbox {
-    height: var(--height);
+    min-height: var(--height);
     left: 50%;
     width: var(--text-width);
     transform: translate(-50%, 8px);
@@ -94,7 +96,7 @@
 
   #logo img {
     display: block;
-    height: 70%;
+    height: calc(var(--height) * 0.7);
     width: auto;
   }
 
@@ -112,6 +114,19 @@
     font-size: 32px;
     line-height: 1.25;
     overflow-wrap: anywhere;
+  }
+
+  /* Datumet längst till höger i textrutan (skrivs i appen) */
+  #date {
+    flex: none;
+    display: flex;
+    align-items: center;
+    margin: 22px 0;
+    padding: 0 36px 0 30px;
+    border-left: 1px solid var(--divider);
+    color: var(--label);
+    font-size: 26px;
+    white-space: nowrap;
   }
 
   /* ---------- Talare, till vänster om textrutan ---------- */
@@ -289,6 +304,7 @@
       <img src="ikoner/bodens-kommun-logotyp-beskuren.png" alt="Bodens kommun">
     </div>
     <div id="text"><p id="text-content"></p></div>
+    <div id="date" hidden></div>
   </div>
 
   <div id="pause">
@@ -305,7 +321,7 @@
   const POLL_MS = 250;
   const FADE_MS = 400;
   const MAX_NAME = 80;
-  const MAX_TEXT = 200;
+  const MAX_TEXT = 400;
   const VIDEO = /\.(mp4|webm|mov|m4v|ogv)$/i;
   const PARTIES = Array.isArray(window.PARTIER) ? window.PARTIER : [];
   // overlay.html?preview visas i appens förhandsvisning av pausskärmen.
@@ -431,13 +447,30 @@
     };
   }
 
+  // Anpassar textstorleken efter den bredd textrutan ska få, även om den
+  // är mitt i en animation mellan smal och bred.
   function fitTextbox() {
-    fitText(textEl, textArea, 32, 20,
-      (el, area) => el.offsetHeight <= area.clientHeight - 24);
+    const root = getComputedStyle(document.documentElement);
+    const target = parseFloat(root.getPropertyValue(
+      textBox.classList.contains("wide") ? "--text-width-wide" : "--text-width"));
+    const extra = target ? target - textBox.offsetWidth : 0;
+    const area = getComputedStyle(textArea);
+    const width = textArea.clientWidth - parseFloat(area.paddingLeft)
+      - parseFloat(area.paddingRight) + extra;
+
+    textEl.style.width = `${Math.max(0, width)}px`;
+    // Jämför med rutans vanliga höjd, inte den den kanske har vuxit till.
+    const limit = parseFloat(root.getPropertyValue("--height")) - 24;
+    fitText(textEl, textArea, 32, 18, el => el.offsetHeight <= limit);
+    textEl.style.width = "";
   }
 
   // Mät om ifall källans storlek ändras i OBS.
   window.addEventListener("resize", fitTextbox);
+  // ... och när textrutan har blivit bredare eller smalare.
+  textBox.addEventListener("transitionend", event => {
+    if (event.target === textBox && event.propertyName === "width") fitTextbox();
+  });
 
   const showSpeaker = createSlot(speakerBox, async data => {
     if (!data) {
@@ -455,6 +488,20 @@
     textEl.textContent = data ? data.text : "";
     if (data) fitTextbox();
   });
+
+  /* ---------- Datum längst till höger ---------- */
+
+  const dateEl = document.getElementById("date");
+  let currentDate = null;
+
+  function setDate(date) {
+    if (date === currentDate) return;
+    currentDate = date;
+    dateEl.textContent = date;
+    dateEl.hidden = !date;
+    // Texten får mindre eller mer plats, så anpassa storleken.
+    fitTextbox();
+  }
 
   /* ---------- Bredare textruta utan talare ---------- */
 
@@ -577,6 +624,8 @@
 
         const options = state.installningar || {};
         setWide(options.autoBredd !== false && !name);
+        // Datumet visas bara på textruta 0.
+        setDate(text && (state.textruta || {}).first ? clean(options.datum, 40) : "");
 
         applyPause(state.paus);
       }

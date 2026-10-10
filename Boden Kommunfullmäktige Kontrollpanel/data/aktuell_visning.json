@@ -7,22 +7,23 @@
     "text": ""
   },
   "installningar": {
-    "autoBredd": true
+    "autoBredd": true,
+    "datum": "2026-10-10"
   },
   "paus": {
     "visible": false,
-    "text": "Sändningen återupptar 18:20",
-    "textSize": 117,
-    "textY": 76,
+    "text": "Sändningen återupptas 18:20",
+    "textSize": 124,
+    "textY": 71,
     "textBox": true,
-    "textBoxOpacity": 73,
+    "textBoxOpacity": 67,
     "logo": "ikoner/bodens-kommun-logotyp-bättrekvalitet.png",
-    "logoSize": 370,
-    "logoY": 36,
+    "logoSize": 387,
+    "logoY": 32,
     "background": "bilder/bakgrundsbild1.jpg",
     "zoom": 100,
     "blur": true,
-    "blurAmount": 4
+    "blurAmount": 2
   },
-  "updatedAt": 1791653003.0974555
+  "updatedAt": 1791656815.3340375
 }
