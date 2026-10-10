@@ -1,0 +1,32 @@
+{
+  "typ": "talarlista",
+  "version": 1,
+  "namn": "Talarlista",
+  "sparad": "2026-10-09T11:21:24.506Z",
+  "talare": [
+    {
+      "namn": "Jimmie Åkesson",
+      "parti": "sd"
+    },
+    {
+      "namn": "Magdalena Andersson",
+      "parti": "s"
+    },
+    {
+      "namn": "Amanda Lind",
+      "parti": "mp"
+    },
+    {
+      "namn": "Simona Mohamsson",
+      "parti": "l"
+    },
+    {
+      "namn": "Ebba Busch",
+      "parti": "kd"
+    },
+    {
+      "namn": "Elisabeth Thand Ringqvist",
+      "parti": "c"
+    }
+  ]
+}

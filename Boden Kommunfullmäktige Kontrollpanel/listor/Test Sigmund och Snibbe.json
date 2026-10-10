@@ -1,0 +1,56 @@
+{
+  "typ": "talarlista",
+  "version": 1,
+  "namn": "Test Sigmund och Snibbe",
+  "sparad": "2026-10-09T11:44:33.273Z",
+  "talare": [
+    {
+      "namn": "Jimmie Åkesson",
+      "parti": "sd"
+    },
+    {
+      "namn": "Magdalena Andersson",
+      "parti": "s"
+    },
+    {
+      "namn": "Amanda Lind",
+      "parti": "mp"
+    },
+    {
+      "namn": "Simona Mohamsson",
+      "parti": "l"
+    },
+    {
+      "namn": "Ebba Busch",
+      "parti": "kd"
+    },
+    {
+      "namn": "Elisabeth Thand Ringqvist",
+      "parti": "c"
+    },
+    {
+      "namn": "Ulf Kristersson",
+      "parti": "m"
+    },
+    {
+      "namn": "Nooshi Dadgostar",
+      "parti": "v"
+    },
+    {
+      "namn": "Person personsson",
+      "parti": "sp"
+    },
+    {
+      "namn": "Bodenpersonen sonson",
+      "parti": "ba"
+    },
+    {
+      "namn": "Sigmund Personsson",
+      "parti": "ba"
+    },
+    {
+      "namn": "Snibbe Soppasson",
+      "parti": "sp"
+    }
+  ]
+}

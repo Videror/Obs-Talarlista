@@ -1,0 +1,37 @@
+BODEN KOMMUNFULLMÄKTIGE KONTROLLPANEL
+
+MAPPARNA HÄR
+  Boden Kommunfullmäktige Kontrollpanel\   ← det här är programmet.
+                                            Kopiera hela mappen till USB-stickan.
+  källkod\                                  ← behövs bara för att bygga om programmet.
+  gamla filer (kan raderas)\                ← används inte längre.
+
+I PROGRAMMAPPEN
+  Boden Kommunfullmäktige Kontrollpanel.exe   dubbelklicka för att starta
+  overlay.html     väljs i OBS (utseende och mått ändras högst upp i filen)
+  partier.js       alla partier
+  ikoner\          partiloggor, Bodens logga och app-ikon.png
+  listor\          sparade talarlistor
+  textrutor\       sparade textrutelistor
+  paus\            bilder/videor du valt till pausskärmen (kopieras hit automatiskt)
+  data\            sköts av programmet, rör inte
+
+Raderar du overlay.html, partier.js eller hela ikoner-mappen skapar
+programmet dem igen nästa gång det startar.
+
+VARJE GÅNG
+Starta programmet och klicka på den som talar och/eller på en textruta.
+Stäng programmet när sändningen är slut (då släcks allt i OBS).
+
+FÖRSTA GÅNGEN PÅ EN DATOR – ställ in OBS
+1. I OBS: klicka + under Källor → Webbläsare.
+2. Bocka i "Lokal fil", klicka Bläddra och välj overlay.html i programmappen.
+3. Bredd 1920, höjd 1080. Klart!
+
+Får USB-stickan en annan enhetsbokstav (t.ex. E: i stället för D:) behöver
+du välja overlay.html igen i OBS.
+
+BYGGA OM PROGRAMMET
+Behövs bara om du ändrar i källkod\app.py eller källkod\control.html,
+eller byter ikoner\app-ikon.png. Dubbelklicka på källkod\bygg_app.bat.
+Ändringar i overlay.html, partier.js, ikoner och listor syns direkt.

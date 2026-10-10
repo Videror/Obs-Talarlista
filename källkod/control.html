@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boden Kommunfullmäktige Kontrollpanel</title>
+<style>
+  * { box-sizing: border-box; }
+
+  [hidden] { display: none !important; }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #151820;
+    color: #f4f6fa;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    min-width: 280px;
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 24px;
+  }
+
+  h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+  }
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+  }
+
+  .hint {
+    margin: 0 0 22px;
+    color: #aeb6c5;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  #no-app {
+    margin: 0 0 18px;
+    padding: 14px;
+    background: #512c35;
+    border: 1px solid #7e414e;
+    border-radius: 8px;
+    line-height: 1.5;
+  }
+
+  /* Smalt fönster: textrutorna under talarna.
+     Bredare än halva skärmen: sida vid sida. */
+  .columns {
+    display: grid;
+    gap: 34px;
+  }
+
+  body.wide .columns {
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+
+  .panel + .panel {
+    padding-top: 26px;
+    border-top: 1px solid #3b4352;
+  }
+
+  body.wide .panel + .panel {
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .status {
+    padding: 14px;
+    margin-bottom: 18px;
+    background: #222835;
+    border-radius: 8px;
+    border: 1px solid #3b4352;
+    overflow-wrap: anywhere;
+  }
+
+  .current {
+    color: #50e3a4;
+    font-weight: 700;
+  }
+
+  /* Gemensam stil för textfält och rullistor */
+  input[type="text"],
+  input[type="search"],
+  textarea,
+  select {
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #41495a;
+    border-radius: 10px;
+    background: #222835;
+    color: white;
+    font-family: inherit;
+    font-size: 16px;
+  }
+
+  textarea {
+    resize: vertical;
+    line-height: 1.4;
+  }
+
+  input[type="text"]:focus,
+  input[type="search"]:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: #50e3a4;
+  }
+
+  .search {
+    width: 100%;
+    margin-bottom: 14px;
+  }
+
+  .count {
+    margin: 0 0 8px;
+    color: #aeb6c5;
+    font-size: 13px;
+  }
+
+  /* Listan får en fast höjd och skrollar inuti rutan. */
+  .items {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-content: start;
+    gap: 12px;
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 4px 6px 4px 0;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #4a5366 transparent;
+  }
+
+  /* I helskärm får listorna växa med fönstret. */
+  body.wide .items {
+    max-height: max(300px, calc(100vh - 640px));
+  }
+
+  .items.single {
+    grid-template-columns: 1fr;
+  }
+
+  .item {
+    position: relative;
+  }
+
+  button {
+    border: 1px solid #41495a;
+    border-radius: 10px;
+    background: #272e3b;
+    color: white;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 150ms ease,
+                border-color 150ms ease,
+                transform 150ms ease;
+  }
+
+  button:hover {
+    background: #353e4e;
+    border-color: #50e3a4;
+  }
+
+  button:active {
+    transform: scale(0.98);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .select {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 70px;
+    padding: 12px 34px 12px 12px;
+    font-size: 18px;
+    text-align: left;
+  }
+
+  .items.single .select {
+    justify-content: flex-start;
+    min-height: 68px;
+    padding-left: 16px;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  .select.selected {
+    background: #1b5d48;
+    border-color: #50e3a4;
+  }
+
+  .select .icon {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+  }
+
+  .select .text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .select .party {
+    display: block;
+    margin-top: 2px;
+    color: #aeb6c5;
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .remove,
+  .edit {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 6px;
+    background: transparent;
+    border-color: transparent;
+    color: #aeb6c5;
+    font-size: 14px;
+  }
+
+  .remove:hover {
+    background: #713745;
+    border-color: #7e414e;
+    color: white;
+  }
+
+  /* ✎ står under ✕ så att texten får så mycket plats som möjligt. */
+  .edit {
+    top: 36px;
+  }
+
+  .edit:hover {
+    background: #3d4658;
+    border-color: #f5c46b;
+    color: white;
+  }
+
+  /* Raden som redigeras just nu */
+  .item.editing .select {
+    border-color: #f5c46b;
+    border-style: dashed;
+  }
+
+  .remove.armed {
+    z-index: 1;
+    padding: 0 8px;
+    background: #8a3446;
+    border-color: #b4566a;
+    color: white;
+    font-size: 12px;
+  }
+
+  .empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 18px;
+    text-align: center;
+    color: #929bab;
+    border: 1px dashed #3b4352;
+    border-radius: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  .add-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .add-form .full {
+    grid-column: 1 / -1;
+  }
+
+  .add-form button {
+    min-height: 46px;
+    padding: 0 18px;
+    font-size: 16px;
+  }
+
+  .add-form .link {
+    justify-self: start;
+    min-height: 0;
+    margin-top: 0;
+    padding: 2px 0;
+    font-size: 13px;
+  }
+
+  .form-title {
+    margin: 0;
+    color: #f5c46b;
+    font-size: 13px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .add-form.editing input,
+  .add-form.editing textarea,
+  .add-form.editing select {
+    border-color: #f5c46b;
+  }
+
+  .add-form .chars {
+    align-self: center;
+    color: #929bab;
+    font-size: 12px;
+  }
+
+  .msg {
+    min-height: 18px;
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .msg.error { color: #ff9aa9; }
+  .msg.ok { color: #7be0b4; }
+
+  .clear {
+    width: 100%;
+    margin-top: 10px;
+    min-height: 55px;
+    background: #512c35;
+    border-color: #7e414e;
+    font-size: 16px;
+  }
+
+  .clear:hover {
+    background: #713745;
+  }
+
+  .lists {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid #3b4352;
+  }
+
+  .lists label {
+    display: block;
+    margin-bottom: 6px;
+    color: #aeb6c5;
+    font-size: 13px;
+  }
+
+  .lists .list-name {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .tool {
+    min-height: 48px;
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
+  .tool.wide {
+    width: 100%;
+  }
+
+  .lists label.spaced {
+    margin-top: 16px;
+  }
+
+  .lists label.check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 12px 0 0;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+
+  .lists label.check input {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  .saved {
+    width: 100%;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+  }
+
+  .link {
+    margin-top: 8px;
+    padding: 4px 0;
+    border: none;
+    background: none;
+    color: #aeb6c5;
+    font-size: 13px;
+    font-weight: 400;
+    text-decoration: underline;
+  }
+
+  .link:hover {
+    background: none;
+    color: white;
+  }
+
+  .undo {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  /* Numret framför varje textruta (syns bara här, inte i sändningen) */
+  .select .index {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 6px;
+    border-radius: 7px;
+    background: #353e4e;
+    color: #d8dde6;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .select.selected .index {
+    background: #2a7a5f;
+    color: white;
+  }
+
+  label.option {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    color: #aeb6c5;
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+
+  label.option input {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* ---------- Pausskärm, alltid högst upp ---------- */
+
+  #pause-section {
+    margin-bottom: 30px;
+    padding: 18px 20px 20px;
+    background: #1b1f29;
+    border: 1px solid #3b4352;
+    border-radius: 12px;
+  }
+
+  #pause-section.on {
+    border-color: #e0b04a;
+    box-shadow: 0 0 0 1px #e0b04a inset;
+  }
+
+  .pause-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+  }
+
+  .pause-head h2 {
+    margin: 0;
+  }
+
+  .pill {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #2b3240;
+    color: #aeb6c5;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  #pause-section.on .pill {
+    background: #e0b04a;
+    color: #1b1f29;
+  }
+
+  #pause-toggle {
+    margin-left: auto;
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 15px;
+  }
+
+  #pause-section.on #pause-toggle {
+    background: #5a4520;
+    border-color: #e0b04a;
+  }
+
+  .pause-head .link {
+    margin-top: 0;
+  }
+
+  .pause-body {
+    display: grid;
+    gap: 22px;
+    margin-top: 18px;
+  }
+
+  body.wide .pause-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 36px;
+  }
+
+  .pause-controls h3 {
+    margin: 18px 0 8px;
+    font-size: 14px;
+    color: #d8dde6;
+  }
+
+  .pause-controls h3:first-child {
+    margin-top: 0;
+  }
+
+  #pause-text {
+    width: 100%;
+  }
+
+  .slider {
+    display: grid;
+    grid-template-columns: 150px 1fr 64px;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    color: #aeb6c5;
+    font-size: 13px;
+  }
+
+  .slider input {
+    width: 100%;
+    accent-color: #50e3a4;
+  }
+
+  .slider output {
+    color: #d8dde6;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .file-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .file-name {
+    flex: 1 1 140px;
+    min-width: 0;
+    padding: 9px 12px;
+    background: #0f1218;
+    border: 1px solid #41495a;
+    border-radius: 8px;
+    color: #d8dde6;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .small {
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .toggle[aria-pressed="true"] {
+    background: #1b5d48;
+    border-color: #50e3a4;
+  }
+
+  .pause-controls .switch {
+    margin-top: 12px;
+  }
+
+  .slider input:disabled {
+    opacity: 0.4;
+  }
+
+  .preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .preview-head h3 {
+    margin: 0;
+    font-size: 14px;
+    color: #d8dde6;
+  }
+
+  .preview-head .link {
+    margin-top: 0;
+  }
+
+  /* Förhandsvisningen är den riktiga overlay.html i 1920 × 1080,
+     förminskad så att den får plats. */
+  .preview-box {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #3b4352;
+    background: #000;
+  }
+
+  .preview-box iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1920px;
+    height: 1080px;
+    border: 0;
+    transform-origin: 0 0;
+    transform: scale(var(--scale, 0.25));
+    pointer-events: none;
+  }
+
+  /* Inställning av OBS */
+  #obs {
+    margin-top: 30px;
+    padding-top: 18px;
+    border-top: 1px solid #3b4352;
+  }
+
+  summary {
+    cursor: pointer;
+    font-weight: 700;
+  }
+
+  #obs ol {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    color: #d8dde6;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  footer {
+    margin-top: 22px;
+    color: #929bab;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+  <h1>Boden Kommunfullmäktige Kontrollpanel</h1>
+  <p class="hint">
+    Klicka på den som talar eller på en textruta. Det som visas tonas
+    ut innan nästa visas i OBS.
+  </p>
+
+  <p id="no-app" hidden>
+    Den här sidan fungerar bara inne i appen. Starta
+    <b>Boden Kommunfullmäktige Kontrollpanel.exe</b>.
+  </p>
+
+  <!-- ==================== Pausskärm ==================== -->
+  <section id="pause-section" aria-labelledby="pause-heading">
+    <div class="pause-head">
+      <h2 id="pause-heading">Pausskärm</h2>
+      <span id="pause-status" class="pill">Av</span>
+      <button type="button" id="pause-collapse" class="link"
+              aria-expanded="true" aria-controls="pause-body">Dölj inställningar</button>
+      <button type="button" id="pause-toggle">⏸ Visa pausskärm</button>
+    </div>
+
+    <div id="pause-body" class="pause-body">
+      <div class="pause-controls">
+        <h3>Text</h3>
+        <textarea id="pause-text" rows="2" maxlength="300"
+                  placeholder="Text på pausskärmen…" aria-label="Text på pausskärmen"></textarea>
+        <div class="slider">
+          <label for="pause-text-size">Textstorlek</label>
+          <input type="range" id="pause-text-size" data-key="textSize" min="12" max="240">
+          <output for="pause-text-size"></output>
+        </div>
+        <div class="slider">
+          <label for="pause-text-y">Textens höjd</label>
+          <input type="range" id="pause-text-y" data-key="textY" data-invert min="0" max="100">
+          <output for="pause-text-y"></output>
+        </div>
+        <button type="button" id="pause-text-box" class="toggle small switch"
+                aria-pressed="false">Svart ruta bakom texten: av</button>
+        <div class="slider">
+          <label for="pause-text-box-opacity">Rutans opacitet</label>
+          <input type="range" id="pause-text-box-opacity" data-key="textBoxOpacity"
+                 data-needs="textBox" min="0" max="100">
+          <output for="pause-text-box-opacity"></output>
+        </div>
+
+        <h3>Logga</h3>
+        <div class="file-row">
+          <span id="pause-logo-name" class="file-name"></span>
+          <button type="button" id="pause-logo-browse" class="small">Bläddra…</button>
+          <button type="button" id="pause-logo-default" class="small">Standard</button>
+          <button type="button" id="pause-logo-none" class="small">Ingen</button>
+        </div>
+        <p id="pause-logo-missing" class="msg error" hidden>
+          Filen finns inte längre där den valdes (flyttad eller borttagen?).
+          Välj den igen med Bläddra.
+        </p>
+        <div class="slider">
+          <label for="pause-logo-size">Loggans storlek</label>
+          <input type="range" id="pause-logo-size" data-key="logoSize" min="20" max="1000">
+          <output for="pause-logo-size"></output>
+        </div>
+        <div class="slider">
+          <label for="pause-logo-y">Loggans höjd</label>
+          <input type="range" id="pause-logo-y" data-key="logoY" data-invert min="0" max="100">
+          <output for="pause-logo-y"></output>
+        </div>
+
+        <h3>Bakgrund (bild eller video)</h3>
+        <div class="file-row">
+          <span id="pause-bg-name" class="file-name"></span>
+          <button type="button" id="pause-bg-browse" class="small">Bläddra…</button>
+          <button type="button" id="pause-bg-none" class="small">Ta bort</button>
+        </div>
+        <p id="pause-bg-missing" class="msg error" hidden>
+          Filen finns inte längre där den valdes (flyttad eller borttagen?).
+          Välj den igen med Bläddra.
+        </p>
+        <div class="slider">
+          <label for="pause-zoom">Zoom</label>
+          <input type="range" id="pause-zoom" data-key="zoom" min="100" max="400">
+          <output for="pause-zoom"></output>
+        </div>
+        <button type="button" id="pause-blur" class="toggle small switch"
+                aria-pressed="false">Oskärpa: av</button>
+        <div class="slider">
+          <label for="pause-blur-amount">Oskärpans styrka</label>
+          <input type="range" id="pause-blur-amount" data-key="blurAmount"
+                 data-needs="blur" min="0" max="60">
+          <output for="pause-blur-amount"></output>
+        </div>
+
+        <p id="pause-message" class="msg" aria-live="polite"></p>
+      </div>
+
+      <div class="pause-preview">
+        <div class="preview-head">
+          <h3>Förhandsvisning</h3>
+          <button type="button" id="preview-toggle" class="link"
+                  aria-expanded="true" aria-controls="preview-box">Dölj</button>
+        </div>
+        <div id="preview-box" class="preview-box">
+          <iframe id="preview-frame" title="Förhandsvisning av pausskärmen" tabindex="-1"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="columns">
+    <!-- ==================== Talare ==================== -->
+    <section class="panel" id="sp">
+      <h2>Talare</h2>
+
+      <div class="status" aria-live="polite">
+        Visas nu: <span class="current" id="sp-current">Ingen</span>
+      </div>
+
+      <input id="sp-search" class="search" type="search" autocomplete="off"
+             placeholder="Sök namn eller parti…" aria-label="Sök talare">
+
+      <p id="sp-count" class="count" aria-live="polite"></p>
+      <div class="items" id="sp-items"></div>
+
+      <form id="sp-form" class="add-form" autocomplete="off">
+        <p id="sp-form-title" class="form-title full" hidden></p>
+        <input id="sp-new" class="full" type="text" maxlength="80"
+               placeholder="Nytt namn…" aria-label="Namn">
+        <select id="sp-party" aria-label="Parti"></select>
+        <button type="submit" id="sp-submit">+ Lägg till</button>
+        <button type="button" id="sp-cancel" class="link full" hidden>Avbryt redigering</button>
+      </form>
+      <p id="sp-message" class="msg" aria-live="polite"></p>
+
+      <button type="button" id="sp-clear" class="clear">✕ Släck talarnamnet</button>
+
+      <div class="lists">
+        <h3>Sparade talarlistor</h3>
+
+        <label for="sp-list-name">Listans namn (blir filnamn)</label>
+        <input id="sp-list-name" class="list-name" type="text" maxlength="60"
+               value="Talarlista" autocomplete="off">
+        <button type="button" id="sp-save" class="tool wide">💾 Spara lista</button>
+
+        <label for="sp-saved" class="spaced">Öppna en sparad lista</label>
+        <div class="row">
+          <select id="sp-saved" class="saved" aria-label="Sparade talarlistor"></select>
+          <button type="button" id="sp-open" class="tool">📂 Öppna</button>
+        </div>
+        <div class="links">
+          <button type="button" id="sp-open-file" class="link">Öppna en fil från datorn…</button>
+          <button type="button" id="sp-open-folder" class="link">Visa mappen listor</button>
+        </div>
+
+        <label class="check">
+          <input type="checkbox" id="sp-merge">
+          Lägg till i nuvarande lista i stället för att ersätta den
+        </label>
+
+        <input type="file" id="sp-file" accept=".json,application/json" hidden>
+        <p id="sp-list-message" class="msg" aria-live="polite"></p>
+        <button type="button" id="sp-undo" class="tool undo" hidden>↶ Ångra senaste öppning</button>
+      </div>
+    </section>
+
+    <!-- ==================== Textrutor ==================== -->
+    <section class="panel" id="tx">
+      <h2>Textrutor</h2>
+
+      <div class="status" aria-live="polite">
+        Visas nu: <span class="current" id="tx-current">Ingen</span>
+      </div>
+
+      <input id="tx-search" class="search" type="search" autocomplete="off"
+             placeholder="Sök text eller nummer…" aria-label="Sök textruta">
+
+      <p id="tx-count" class="count" aria-live="polite"></p>
+      <div class="items single" id="tx-items"></div>
+
+      <form id="tx-form" class="add-form" autocomplete="off">
+        <p id="tx-form-title" class="form-title full" hidden></p>
+        <textarea id="tx-new" class="full" rows="3" maxlength="200"
+                  placeholder="Ny textruta…"
+                  aria-label="Textruta"></textarea>
+        <span id="tx-chars" class="chars"></span>
+        <button type="submit" id="tx-submit">+ Lägg till</button>
+        <button type="button" id="tx-cancel" class="link full" hidden>Avbryt redigering</button>
+      </form>
+      <p id="tx-message" class="msg" aria-live="polite"></p>
+
+      <button type="button" id="tx-clear" class="clear">✕ Släck textrutan</button>
+
+      <label class="option">
+        <input type="checkbox" id="auto-wide" checked>
+        Gör textrutan bredare automatiskt när ingen talare visas
+      </label>
+
+      <div class="lists">
+        <h3>Sparade textrutelistor</h3>
+
+        <label for="tx-list-name">Listans namn (blir filnamn)</label>
+        <input id="tx-list-name" class="list-name" type="text" maxlength="60"
+               value="Textrutor" autocomplete="off">
+        <button type="button" id="tx-save" class="tool wide">💾 Spara lista</button>
+
+        <label for="tx-saved" class="spaced">Öppna en sparad lista</label>
+        <div class="row">
+          <select id="tx-saved" class="saved" aria-label="Sparade textrutelistor"></select>
+          <button type="button" id="tx-open" class="tool">📂 Öppna</button>
+        </div>
+        <div class="links">
+          <button type="button" id="tx-open-file" class="link">Öppna en fil från datorn…</button>
+          <button type="button" id="tx-open-folder" class="link">Visa mappen textrutor</button>
+        </div>
+
+        <label class="check">
+          <input type="checkbox" id="tx-merge">
+          Lägg till i nuvarande lista i stället för att ersätta den
+        </label>
+
+        <input type="file" id="tx-file" accept=".json,application/json" hidden>
+        <p id="tx-list-message" class="msg" aria-live="polite"></p>
+        <button type="button" id="tx-undo" class="tool undo" hidden>↶ Ångra senaste öppning</button>
+      </div>
+    </section>
+  </div>
+
+  <section id="obs">
+    <details id="obs-setup">
+      <summary>Ställ in OBS (görs en gång)</summary>
+      <ol>
+        <li>I OBS: klicka <b>+</b> under Källor → <b>Webbläsare</b>.</li>
+        <li>Bocka i <b>Lokal fil</b>, klicka <b>Bläddra</b> och välj
+            <b>overlay.html</b> i programmets mapp.</li>
+        <li>Sätt bredd <b>1920</b> och höjd <b>1080</b>. Klart! Både talare och
+            textrutor visas i samma källa.</li>
+      </ol>
+    </details>
+  </section>
+
+  <footer>
+    Listorna sparas automatiskt. Enter i sökrutan väljer när det bara finns
+    en träff – skriv t.ex. 3 i textrutornas sökruta och tryck Enter för att
+    visa textruta nummer 3. Numren syns bara här, inte i sändningen. Klicka på ✎ i hörnet av en knapp för att ändra den (Esc avbryter)
+    och på ✕ två gånger för att ta bort den.
+    När appen stängs släcks allt i OBS. Partier och ikoner ställer du in i
+    filen partier.js.
+  </footer>
+
+<script src="partier.js"></script>
+<script>
+(() => {
+  const MAX_ENTRIES = 500;
+  const MAX_FILE_SIZE = 1024 * 1024; // 1 MB räcker gott för en lista
+  const PARTIES = Array.isArray(window.PARTIER) ? window.PARTIER : [];
+
+  let api = null; // Appens funktioner (app.py), finns bara i appen.
+
+  /* ---------- Hjälpfunktioner ---------- */
+
+  function cleanText(text, maxLength) {
+    return typeof text === "string"
+      ? text.replace(/\s+/g, " ").trim().slice(0, maxLength)
+      : "";
+  }
+
+  function partyById(id) {
+    return PARTIES.find(p => p.id === id) || null;
+  }
+
+  function lower(text) {
+    return text.toLocaleLowerCase("sv");
+  }
+
+  function setMessage(el, text, kind) {
+    el.textContent = text;
+    el.className = kind ? `msg ${kind}` : "msg";
+  }
+
+  function formatDate(seconds) {
+    try {
+      return new Date(seconds * 1000).toLocaleString("sv-SE", {
+        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+      });
+    } catch (error) {
+      return "";
+    }
+  }
+
+  /* ---------- En lista med knappar (talare eller textrutor) ----------
+
+     Båda listorna fungerar likadant: sök, klicka för att visa i OBS,
+     lägg till, redigera, ta bort, spara och öppna. Det som skiljer står i cfg:
+
+       prefix    början på alla id:n i HTML, t.ex. "sp"
+       kind      listtypen i appen och i filerna ("talare" / "textrutor")
+       clean     gör om en rad från en fil till ett objekt (eller null)
+       toFile    gör om ett objekt till en rad i filen
+       key       det som identifierar ett objekt (dubbletter, markering)
+       label     texten i "Visas nu"
+       search    texten som sökningen letar i
+       fill      ritar innehållet i en knapp (får även radens nummer)
+       numbered  true om man kan söka på radens nummer (1, 2, 3 …)
+       readForm  läser formuläret och returnerar ett nytt objekt
+       loadForm  fyller formuläret med ett objekt som ska redigeras
+       send      skickar ett objekt (eller null) till OBS via appen
+  */
+  function createPanel(cfg) {
+    const $ = id => document.getElementById(`${cfg.prefix}-${id}`);
+    const ui = {
+      current: $("current"), search: $("search"), count: $("count"),
+      items: $("items"), form: $("form"), message: $("message"),
+      clear: $("clear"), listName: $("list-name"), save: $("save"),
+      saved: $("saved"), open: $("open"), openFile: $("open-file"),
+      openFolder: $("open-folder"), merge: $("merge"), file: $("file"),
+      listMessage: $("list-message"), undo: $("undo"),
+      submit: $("submit"), cancel: $("cancel"), formTitle: $("form-title")
+    };
+    const submitText = ui.submit.textContent;
+
+    let items = (cfg.defaults || []).map(cfg.clean).filter(Boolean);
+    let editing = null; // Objektet som redigeras just nu, annars null.
+    let shownKey = "";
+    let listName = "";
+    let backup = null;
+    let backupListName = "";
+
+    const same = (a, b) => lower(cfg.key(a)) === lower(cfg.key(b));
+
+    function toFileFormat(name) {
+      return {
+        typ: cfg.kind,
+        version: 1,
+        namn: name,
+        sparad: new Date().toISOString(),
+        [cfg.kind]: items.map(cfg.toFile)
+      };
+    }
+
+    // Returnerar { name, items } eller null om filen inte är en sådan lista.
+    function parseList(data) {
+      let raw = null;
+      let name = "";
+      if (Array.isArray(data)) {
+        raw = data;
+      } else if (data && typeof data === "object" && Array.isArray(data[cfg.kind])) {
+        raw = data[cfg.kind];
+        name = cleanText(data.namn, 60);
+      }
+      if (!raw) return null;
+
+      const result = [];
+      raw.slice(0, MAX_ENTRIES * 2).forEach(row => {
+        const item = cfg.clean(row);
+        if (item && !result.some(other => same(other, item))) result.push(item);
+      });
+      return { name, items: result.slice(0, MAX_ENTRIES) };
+    }
+
+    function saveSession() {
+      if (!api) return;
+      api.save_session(cfg.kind, toFileFormat(listName)).catch(error => {
+        console.error("Kunde inte spara listan.", error);
+      });
+    }
+
+    /* ----- Sök och visning ----- */
+
+    function query() {
+      return lower(ui.search.value.trim());
+    }
+
+    function matches(item, q) {
+      if (!q) return true;
+      const haystack = lower(cfg.search(item));
+      // Alla ord i sökningen måste finnas någonstans.
+      return q.split(" ").every(word => haystack.includes(word));
+    }
+
+    // Raderna som ska synas för en sökning. Ett nummer i en numrerad
+    // lista visar just den raden, annars söks det i texten.
+    function search(q) {
+      if (cfg.numbered && /^\d+$/.test(q)) {
+        const number = Number(q);
+        if (number >= 1 && number <= items.length) return [items[number - 1]];
+      }
+      return items.filter(item => matches(item, q));
+    }
+
+    function buildRemoveButton(item) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "remove";
+      remove.textContent = "✕";
+      remove.title = "Ta bort";
+      remove.setAttribute("aria-label", `Ta bort ${cfg.label(item)}`);
+
+      // Två klick krävs så att inget tas bort av misstag.
+      let armed = false;
+      let timer = 0;
+
+      function disarm() {
+        armed = false;
+        remove.classList.remove("armed");
+        remove.textContent = "✕";
+      }
+
+      remove.addEventListener("click", () => {
+        if (!armed) {
+          armed = true;
+          remove.classList.add("armed");
+          remove.textContent = "Ta bort?";
+          timer = window.setTimeout(disarm, 3000);
+          return;
+        }
+        window.clearTimeout(timer);
+        removeItem(item);
+      });
+
+      return remove;
+    }
+
+    function buildEditButton(item) {
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "edit";
+      edit.textContent = "✎";
+      edit.title = "Redigera";
+      edit.setAttribute("aria-label", `Redigera ${cfg.label(item)}`);
+      edit.addEventListener("click", () => startEdit(item));
+      return edit;
+    }
+
+    function renderList() {
+      const scroll = ui.items.scrollTop;
+      const q = query();
+      const visible = search(q);
+
+      let count = `${items.length} i listan`;
+      if (listName) count += ` “${listName}”`;
+      if (q && visible.length !== items.length) count += ` – visar ${visible.length}`;
+      ui.count.textContent = count;
+
+      ui.items.replaceChildren();
+      requestAnimationFrame(() => { ui.items.scrollTop = scroll; });
+
+      if (visible.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty";
+        empty.textContent = items.length === 0
+          ? "Listan är tom. Lägg till nedan."
+          : `Inga träffar för “${ui.search.value.trim()}”.`;
+        ui.items.append(empty);
+        return;
+      }
+
+      visible.forEach(item => {
+        const wrap = document.createElement("div");
+        wrap.className = "item";
+        wrap.classList.toggle("editing", item === editing);
+
+        const select = document.createElement("button");
+        select.type = "button";
+        select.className = "select";
+        const selected = cfg.key(item) === shownKey;
+        select.classList.toggle("selected", selected);
+        select.setAttribute("aria-pressed", String(selected));
+        cfg.fill(select, item, items.indexOf(item) + 1);
+        select.addEventListener("click", () => show(item));
+
+        wrap.append(select, buildEditButton(item), buildRemoveButton(item));
+        ui.items.append(wrap);
+      });
+    }
+
+    function setShown(item) {
+      shownKey = item ? cfg.key(item) : "";
+      ui.current.textContent = item ? cfg.label(item) : "Ingen";
+      renderList();
+    }
+
+    /* ----- Visa, lägg till, ta bort ----- */
+
+    // Skicka null för att släcka.
+    function show(item) {
+      setShown(item);
+      if (!api) return;
+      cfg.send(item).catch(error => {
+        setMessage(ui.message, `Kunde inte uppdatera OBS: ${error}`, "error");
+      });
+    }
+
+    function addItem(item) {
+      setMessage(ui.message, "");
+      if (items.some(other => same(other, item))) {
+        setMessage(ui.message, `“${cfg.label(item)}” finns redan i listan.`, "error");
+        return false;
+      }
+      if (items.length >= MAX_ENTRIES) {
+        setMessage(ui.message, `Listan kan max innehålla ${MAX_ENTRIES} rader.`, "error");
+        return false;
+      }
+      items.push(item);
+      saveSession();
+      // Töm sökningen så att det nya syns direkt.
+      ui.search.value = "";
+      renderList();
+      return true;
+    }
+
+    /* ----- Redigera ----- */
+
+    function startEdit(item) {
+      editing = item;
+      cfg.loadForm(item);
+      ui.form.classList.add("editing");
+      ui.formTitle.textContent = `Redigerar “${cfg.label(item)}”`;
+      ui.formTitle.hidden = false;
+      ui.submit.textContent = "✓ Spara ändring";
+      ui.cancel.hidden = false;
+      setMessage(ui.message, "");
+      renderList();
+      ui.form.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      cfg.focusForm();
+    }
+
+    // Formuläret tillbaka till "Lägg till".
+    function resetEditForm() {
+      ui.form.classList.remove("editing");
+      ui.formTitle.hidden = true;
+      ui.submit.textContent = submitText;
+      ui.cancel.hidden = true;
+    }
+
+    // Avbryter redigeringen utan att spara.
+    function stopEdit() {
+      if (!editing) return;
+      editing = null;
+      cfg.resetForm();
+      resetEditForm();
+      renderList();
+    }
+
+    function updateItem(item) {
+      setMessage(ui.message, "");
+      const index = items.indexOf(editing);
+      if (index === -1) {
+        stopEdit();
+        return false;
+      }
+      if (items.some((other, i) => i !== index && same(other, item))) {
+        setMessage(ui.message, `“${cfg.label(item)}” finns redan i listan.`, "error");
+        return false;
+      }
+
+      const old = items[index];
+      const wasShown = cfg.key(old) === shownKey;
+      items[index] = item;
+      editing = null;
+      resetEditForm();
+      saveSession();
+
+      // Visas raden i OBS just nu uppdateras den där direkt.
+      if (wasShown) {
+        show(item);
+      } else {
+        renderList();
+      }
+      setMessage(ui.message, `Ändrade till “${cfg.label(item)}”.`, "ok");
+      return true;
+    }
+
+    function removeItem(item) {
+      if (item === editing) stopEdit();
+      items = items.filter(other => !same(other, item));
+      saveSession();
+      // Släck i OBS om det borttagna visas just nu.
+      if (cfg.key(item) === shownKey) {
+        show(null);
+      } else {
+        renderList();
+      }
+    }
+
+    /* ----- Sparade listor ----- */
+
+    async function refreshSaved(selectFile) {
+      let files = [];
+      try {
+        files = await api.list_lists(cfg.kind);
+      } catch (error) {
+        console.error("Kunde inte läsa sparade listor.", error);
+      }
+
+      ui.saved.replaceChildren();
+      ui.open.disabled = files.length === 0;
+
+      if (files.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "Inga sparade listor ännu";
+        ui.saved.append(option);
+        return;
+      }
+
+      files.forEach(file => {
+        const option = document.createElement("option");
+        option.value = file.fil;
+        const date = formatDate(file.andrad);
+        option.textContent = `${file.namn} (${file.antal} st)${date ? " – " + date : ""}`;
+        ui.saved.append(option);
+      });
+
+      if (selectFile) ui.saved.value = selectFile;
+    }
+
+    async function saveList() {
+      const name = cleanText(ui.listName.value, 60) || cfg.defaultListName;
+      let result;
+      try {
+        result = await api.save_list(cfg.kind, toFileFormat(name));
+      } catch (error) {
+        result = { fel: `Kunde inte spara listan: ${error}` };
+      }
+      if (result.fel) {
+        setMessage(ui.listMessage, result.fel, "error");
+        return;
+      }
+
+      listName = name;
+      saveSession();
+      renderList();
+      refreshSaved(result.fil);
+      setMessage(ui.listMessage,
+        `${result.ersatt ? "Uppdaterade" : "Sparade"} ${result.fil} ` +
+        `(${items.length} st) i mappen ${cfg.folder}.`, "ok");
+    }
+
+    function applyImported(parsed, fallbackName) {
+      stopEdit();
+      backup = items.slice();
+      backupListName = listName;
+      const merge = ui.merge.checked;
+      let text;
+
+      if (merge) {
+        let added = 0;
+        parsed.items.forEach(item => {
+          if (items.length < MAX_ENTRIES && !items.some(other => same(other, item))) {
+            items.push(item);
+            added += 1;
+          }
+        });
+        const skipped = parsed.items.length - added;
+        text = `Lade till ${added} nya` +
+          (skipped ? ` (${skipped} fanns redan eller fick inte plats).` : ".");
+      } else {
+        items = parsed.items;
+        listName = parsed.name || fallbackName;
+        text = `Öppnade “${listName}” med ${items.length} st.`;
+      }
+
+      if (cfg.importNote) text += cfg.importNote(parsed.items);
+      if (parsed.name) ui.listName.value = parsed.name;
+      saveSession();
+      ui.search.value = "";
+      renderList();
+      ui.undo.hidden = false;
+      setMessage(ui.listMessage, text, "ok");
+    }
+
+    async function openSaved() {
+      const fileName = ui.saved.value;
+      if (!fileName) return;
+
+      let result;
+      try {
+        result = await api.open_list(cfg.kind, fileName);
+      } catch (error) {
+        result = { fel: `Kunde inte öppna ${fileName}.` };
+      }
+      if (result.fel) {
+        setMessage(ui.listMessage, result.fel, "error");
+        return;
+      }
+
+      const parsed = parseList(result.data);
+      if (!parsed || parsed.items.length === 0) {
+        setMessage(ui.listMessage, `${fileName} är tom eller fel sorts lista. Inget ändrades.`, "error");
+        return;
+      }
+      applyImported(parsed, fileName.replace(/\.json$/i, ""));
+    }
+
+    async function openFromFile() {
+      const file = ui.file.files && ui.file.files[0];
+      // Töm fältet så att samma fil kan öppnas igen.
+      ui.file.value = "";
+      if (!file) return;
+
+      if (file.size > MAX_FILE_SIZE) {
+        setMessage(ui.listMessage, "Filen är för stor för att vara en lista.", "error");
+        return;
+      }
+
+      // Ta bort ett eventuellt dolt BOM-tecken i början.
+      const text = (await file.text()).replace(/^﻿/, "");
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (error) {
+        setMessage(ui.listMessage, `${file.name} innehåller ett fel och kan inte läsas.`, "error");
+        return;
+      }
+
+      const parsed = parseList(data);
+      if (!parsed || parsed.items.length === 0) {
+        setMessage(ui.listMessage, `${file.name} är tom eller fel sorts lista. Inget ändrades.`, "error");
+        return;
+      }
+      applyImported(parsed, file.name.replace(/\.json$/i, ""));
+    }
+
+    function undoImport() {
+      if (!backup) return;
+      stopEdit();
+      items = backup;
+      backup = null;
+      listName = backupListName;
+      ui.undo.hidden = true;
+      saveSession();
+      renderList();
+      setMessage(ui.listMessage, "Listan är återställd till hur den var innan.", "ok");
+    }
+
+    /* ----- Händelser ----- */
+
+    ui.form.addEventListener("submit", event => {
+      event.preventDefault();
+      const result = cfg.readForm();
+      if (result.error) {
+        setMessage(ui.message, result.error, "error");
+      } else if (editing ? updateItem(result.item) : addItem(result.item)) {
+        cfg.resetForm();
+      }
+      cfg.focusForm();
+    });
+
+    ui.cancel.addEventListener("click", () => {
+      stopEdit();
+      setMessage(ui.message, "");
+    });
+
+    // Esc i formuläret avbryter redigeringen.
+    ui.form.addEventListener("keydown", event => {
+      if (event.key === "Escape" && editing) {
+        stopEdit();
+        setMessage(ui.message, "");
+      }
+    });
+
+    ui.clear.addEventListener("click", () => show(null));
+    ui.search.addEventListener("input", renderList);
+    ui.search.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        ui.search.value = "";
+        renderList();
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const q = query();
+        if (!q) return;
+        const found = search(q);
+        if (found.length === 1) {
+          ui.search.value = "";
+          show(found[0]);
+        }
+      }
+    });
+
+    ui.save.addEventListener("click", saveList);
+    ui.open.addEventListener("click", openSaved);
+    ui.saved.addEventListener("focus", () => refreshSaved(ui.saved.value));
+    ui.openFile.addEventListener("click", () => ui.file.click());
+    ui.openFolder.addEventListener("click", () => api && api.open_list_folder(cfg.kind));
+    ui.file.addEventListener("change", openFromFile);
+    ui.undo.addEventListener("click", undoImport);
+
+    renderList();
+
+    // Anropas när appen är redo: läs senaste listan och det som visas.
+    return async function start(shown) {
+      const parsed = parseList(await api.load_session(cfg.kind));
+      if (parsed) {
+        items = parsed.items;
+        listName = parsed.name;
+        if (parsed.name) ui.listName.value = parsed.name;
+      }
+      const match = shown ? items.find(item => cfg.key(item) === cfg.key(shown)) : null;
+      setShown(match || shown);
+      refreshSaved();
+      return Boolean(parsed);
+    };
+  }
+
+  /* ---------- Talare ---------- */
+
+  const MAX_NAME = 80;
+  const spNew = document.getElementById("sp-new");
+  const spParty = document.getElementById("sp-party");
+
+  spParty.append(new Option("Inget parti", ""));
+  PARTIES.forEach(party => spParty.append(new Option(party.namn, party.id)));
+
+  const startSpeakers = createPanel({
+    prefix: "sp",
+    kind: "talare",
+    folder: "listor",
+    defaultListName: "Talarlista",
+    defaults: ["Anna", "Erik", "Sara", "Johan"],
+
+    // Äldre sparade listor innehåller bara namn som text.
+    clean(row) {
+      const name = cleanText(typeof row === "string" ? row : row && (row.namn || row.name), MAX_NAME);
+      if (!name) return null;
+      const party = typeof row === "object" ? cleanText(row.parti || row.party, 30) : "";
+      return { name, party };
+    },
+    toFile: item => ({ namn: item.name, parti: item.party }),
+    key: item => item.name,
+    label: item => item.name,
+    search(item) {
+      const party = partyById(item.party);
+      return `${item.name} ${party ? party.namn : ""}`;
+    },
+    fill(button, item) {
+      const party = partyById(item.party);
+      if (party && party.ikon) {
+        const img = new Image();
+        img.className = "icon";
+        img.alt = "";
+        img.addEventListener("error", () => img.remove());
+        img.src = party.ikon;
+        button.append(img);
+      }
+      const text = document.createElement("span");
+      text.className = "text";
+      text.textContent = item.name;
+      if (party) {
+        const small = document.createElement("span");
+        small.className = "party";
+        small.textContent = party.namn;
+        text.append(small);
+      }
+      button.append(text);
+    },
+    importNote(items) {
+      const unknown = items.filter(item => item.party && !partyById(item.party)).length;
+      return unknown
+        ? ` ${unknown} har ett parti som inte finns i partier.js och visas utan ikon.`
+        : "";
+    },
+    readForm() {
+      const name = cleanText(spNew.value, MAX_NAME);
+      if (!name) return { error: "Skriv ett namn först." };
+      return { item: { name, party: partyById(spParty.value) ? spParty.value : "" } };
+    },
+    loadForm(item) {
+      spNew.value = item.name;
+      spParty.value = partyById(item.party) ? item.party : "";
+    },
+    resetForm() { spNew.value = ""; },
+    focusForm() { spNew.focus(); },
+    send: item => api.set_speaker(item ? item.name : "", item ? item.party : "")
+  });
+
+  /* ---------- Textrutor ---------- */
+
+  const MAX_TEXT = 200;
+  const txNew = document.getElementById("tx-new");
+  const txChars = document.getElementById("tx-chars");
+
+  function updateChars() {
+    const length = txNew.value.length;
+    txChars.textContent = length ? `${length} / ${MAX_TEXT} tecken` : "";
+  }
+
+  txNew.addEventListener("input", updateChars);
+  // Enter lägger till, precis som i talarlistan.
+  txNew.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      document.getElementById("tx-form").requestSubmit();
+    }
+  });
+
+  const startTexts = createPanel({
+    prefix: "tx",
+    kind: "textrutor",
+    folder: "textrutor",
+    defaultListName: "Textrutor",
+
+    clean(row) {
+      const text = cleanText(typeof row === "string" ? row : row && row.text, MAX_TEXT);
+      return text ? { text } : null;
+    },
+    toFile: item => item.text,
+    key: item => item.text,
+    label: item => item.text,
+    search: item => item.text,
+    numbered: true,
+    // Numret syns bara här i kontrollpanelen, aldrig i sändningen.
+    fill(button, item, number) {
+      const index = document.createElement("span");
+      index.className = "index";
+      index.textContent = number;
+      const text = document.createElement("span");
+      text.className = "text";
+      text.textContent = item.text;
+      button.append(index, text);
+    },
+    readForm() {
+      const text = cleanText(txNew.value, MAX_TEXT);
+      if (!text) return { error: "Skriv en text först." };
+      return { item: { text } };
+    },
+    loadForm(item) {
+      txNew.value = item.text;
+      updateChars();
+    },
+    resetForm() {
+      txNew.value = "";
+      updateChars();
+    },
+    focusForm() { txNew.focus(); },
+    send: item => api.set_textbox(item ? item.text : "")
+  });
+
+  /* ---------- Layout: sida vid sida när fönstret är brett ---------- */
+
+  function updateLayout() {
+    const screenWidth = window.screen.availWidth || window.screen.width || 1600;
+    document.body.classList.toggle("wide", window.innerWidth > screenWidth / 2);
+  }
+
+  window.addEventListener("resize", updateLayout);
+  updateLayout();
+
+  /* ---------- Bredare textruta när ingen talare visas ---------- */
+
+  const autoWide = document.getElementById("auto-wide");
+  autoWide.addEventListener("change", () => {
+    if (api) api.set_options({ autoBredd: autoWide.checked });
+  });
+
+  /* ---------- Vad som är dolt/visat (sparas till nästa gång) ---------- */
+
+  let uiState = { pauseOpen: true, previewOpen: true };
+
+  function saveUi() {
+    if (api) api.save_ui(uiState);
+  }
+
+  /* ---------- Pausskärm ---------- */
+
+  const DEFAULT_LOGO = "ikoner/bodens-kommun-vapen.png";
+  const UNITS = {
+    textSize: "px", textY: "%", textBoxOpacity: "%",
+    logoSize: "px", logoY: "%", zoom: "%", blurAmount: "px"
+  };
+  // Av/på-knappar i pausskärmen: knappens id → [inställning, text på knappen]
+  const SWITCHES = {
+    "pause-text-box": ["textBox", "Svart ruta bakom texten"],
+    "pause-blur": ["blur", "Oskärpa"]
+  };
+  const byId = id => document.getElementById(id);
+  const pauseSection = byId("pause-section");
+  const pauseStatus = byId("pause-status");
+  const pauseToggle = byId("pause-toggle");
+  const pauseCollapse = byId("pause-collapse");
+  const pauseBody = byId("pause-body");
+  const pauseText = byId("pause-text");
+  const pauseMessage = byId("pause-message");
+  const logoName = byId("pause-logo-name");
+  const bgName = byId("pause-bg-name");
+  const bgNone = byId("pause-bg-none");
+  const previewToggle = byId("preview-toggle");
+  const previewBox = byId("preview-box");
+  const previewFrame = byId("preview-frame");
+  const sliders = [...pauseSection.querySelectorAll('input[type="range"]')];
+
+  let pause = {};
+  let pauseSaveTimer = 0;
+  let previewLoaded = false;
+
+  function fileName(path) {
+    return path.split("/").pop();
+  }
+
+  function renderPause() {
+    const on = Boolean(pause.visible);
+    pauseSection.classList.toggle("on", on);
+    pauseStatus.textContent = on ? "Visas i sändningen" : "Av";
+    pauseToggle.textContent = on ? "■ Släck pausskärmen" : "⏸ Visa pausskärm";
+    pauseToggle.setAttribute("aria-pressed", String(on));
+
+    // Skriv inte över texten medan man skriver i rutan.
+    if (document.activeElement !== pauseText) pauseText.value = pause.text || "";
+
+    sliders.forEach(slider => {
+      const value = pause[slider.dataset.key];
+      // Höjdreglagen är omvända: åt höger = högre upp på skärmen.
+      if (value !== undefined) slider.value = invertible(slider, value);
+      slider.nextElementSibling.textContent = `${slider.value} ${UNITS[slider.dataset.key]}`;
+      // Reglage som hör till en av/på-knapp går bara att dra när den är på.
+      if (slider.dataset.needs) slider.disabled = !pause[slider.dataset.needs];
+    });
+
+    Object.entries(SWITCHES).forEach(([id, [key, label]]) => {
+      const button = byId(id);
+      button.setAttribute("aria-pressed", String(Boolean(pause[key])));
+      button.textContent = `${label}: ${pause[key] ? "på" : "av"}`;
+    });
+
+    logoName.textContent = !pause.logo ? "Ingen logga"
+      : pause.logo === DEFAULT_LOGO ? "Standard (Bodens kommunvapen)"
+      : fileName(pause.logo);
+    logoName.title = pause.logo || "";
+    bgName.textContent = pause.background ? fileName(pause.background) : "Ingen – mörk standardbakgrund";
+    bgName.title = pause.background || "";
+    bgNone.disabled = !pause.background;
+    checkMedia();
+  }
+
+  // Varnar om en vald logga eller bakgrund inte finns kvar, t.ex. om
+  // filen har flyttats. Kollas när sökvägen ändras och när man kommer
+  // tillbaka till appens fönster.
+  const MEDIA_WARNINGS = { logo: byId("pause-logo-missing"), background: byId("pause-bg-missing") };
+  let checkedMedia = {};
+
+  async function checkMedia(force) {
+    if (!api) return;
+    for (const [key, warning] of Object.entries(MEDIA_WARNINGS)) {
+      const path = pause[key] || "";
+      if (!force && checkedMedia[key] === path) continue;
+      checkedMedia[key] = path;
+      warning.hidden = !path || await api.media_exists(path);
+    }
+  }
+
+  window.addEventListener("focus", () => checkMedia(true));
+
+  // Overlayn räknar höjden uppifrån (0 % = överst), men reglaget visar
+  // höjden nerifrån så att det känns naturligt. Samma räkning åt båda hållen.
+  function invertible(slider, value) {
+    return slider.dataset.invert !== undefined ? 100 - Number(value) : Number(value);
+  }
+
+  function sendPreview() {
+    if (previewLoaded && previewFrame.contentWindow) {
+      previewFrame.contentWindow.postMessage({ type: "paus", settings: pause }, location.origin);
+    }
+  }
+
+  // Ändringar syns direkt i förhandsvisningen. Till OBS skickas de en kort
+  // stund efter att man slutat dra i ett reglage, av/på skickas direkt.
+  function changePause(changes, immediate) {
+    Object.assign(pause, changes);
+    renderPause();
+    sendPreview();
+    window.clearTimeout(pauseSaveTimer);
+    if (!api) return;
+    const save = () => api.set_pause(pause).catch(error => {
+      setMessage(pauseMessage, `Kunde inte spara pausskärmen: ${error}`, "error");
+    });
+    if (immediate) {
+      save();
+    } else {
+      pauseSaveTimer = window.setTimeout(save, 150);
+    }
+  }
+
+  async function browse(kind, key) {
+    if (!api) return;
+    setMessage(pauseMessage, kind === "background"
+      ? "Välj en bild eller video. Filen kopieras till mappen paus, stora videor kan ta en stund."
+      : "Välj en bild.");
+    let result;
+    try {
+      result = await api.choose_media(kind);
+    } catch (error) {
+      result = { fel: `Kunde inte öppna filen: ${error}` };
+    }
+    if (!result) {
+      setMessage(pauseMessage, "");
+      return;
+    }
+    if (result.fel) {
+      setMessage(pauseMessage, result.fel, "error");
+      return;
+    }
+    changePause({ [key]: result.path }, true);
+    setMessage(pauseMessage, `Valde ${fileName(result.path)}.`, "ok");
+  }
+
+  // Visar/döljer sektionen och förhandsvisningen. Förhandsvisningen laddas
+  // bara när den syns, så att en bakgrundsvideo inte spelas i onödan.
+  function applyUiState() {
+    pauseBody.hidden = !uiState.pauseOpen;
+    pauseCollapse.textContent = uiState.pauseOpen ? "Dölj inställningar" : "Visa inställningar";
+    pauseCollapse.setAttribute("aria-expanded", String(uiState.pauseOpen));
+
+    previewBox.hidden = !uiState.previewOpen;
+    previewToggle.textContent = uiState.previewOpen ? "Dölj" : "Visa";
+    previewToggle.setAttribute("aria-expanded", String(uiState.previewOpen));
+
+    const showPreview = uiState.pauseOpen && uiState.previewOpen;
+    if (showPreview && !previewLoaded) {
+      previewLoaded = true;
+      previewFrame.src = "overlay.html?preview";
+    } else if (!showPreview && previewLoaded) {
+      previewLoaded = false;
+      previewFrame.src = "about:blank";
+    }
+  }
+
+  // Förminska 1920 × 1080 så att den fyller rutan.
+  new ResizeObserver(() => {
+    previewFrame.style.setProperty("--scale", previewBox.clientWidth / 1920);
+  }).observe(previewBox);
+
+  // Förhandsvisningen säger till när den är redo att ta emot inställningar.
+  window.addEventListener("message", event => {
+    if (event.source === previewFrame.contentWindow &&
+        event.data && event.data.type === "preview-ready") {
+      sendPreview();
+    }
+  });
+
+  pauseToggle.addEventListener("click", () => changePause({ visible: !pause.visible }, true));
+  pauseText.addEventListener("input", () => changePause({ text: pauseText.value }));
+  sliders.forEach(slider => {
+    slider.addEventListener("input", () => {
+      changePause({ [slider.dataset.key]: invertible(slider, slider.value) });
+    });
+  });
+  Object.entries(SWITCHES).forEach(([id, [key]]) => {
+    byId(id).addEventListener("click", () => changePause({ [key]: !pause[key] }, true));
+  });
+  byId("pause-logo-browse").addEventListener("click", () => browse("logo", "logo"));
+  byId("pause-logo-default").addEventListener("click", () => changePause({ logo: DEFAULT_LOGO }, true));
+  byId("pause-logo-none").addEventListener("click", () => changePause({ logo: "" }, true));
+  byId("pause-bg-browse").addEventListener("click", () => browse("background", "background"));
+  bgNone.addEventListener("click", () => changePause({ background: "" }, true));
+
+  pauseCollapse.addEventListener("click", () => {
+    uiState.pauseOpen = !uiState.pauseOpen;
+    applyUiState();
+    saveUi();
+  });
+
+  previewToggle.addEventListener("click", () => {
+    uiState.previewOpen = !uiState.previewOpen;
+    applyUiState();
+    saveUi();
+  });
+
+  /* ---------- Start ---------- */
+
+  let started = false;
+
+  async function start() {
+    if (started || !(window.pywebview && window.pywebview.api)) return;
+    started = true;
+    api = window.pywebview.api;
+    document.getElementById("no-app").hidden = true;
+
+    const [display, savedUi] = await Promise.all([api.get_display(), api.load_ui()]);
+
+    autoWide.checked = (display.installningar || {}).autoBredd !== false;
+    uiState = { ...uiState, ...savedUi };
+    pause = { ...(display.paus || {}) };
+    renderPause();
+    applyUiState();
+
+    const speaker = display.talare || {};
+    const text = (display.textruta || {}).text;
+    const hadSession = await startSpeakers(speaker.name ? { name: speaker.name, party: speaker.party || "" } : null);
+    await startTexts(text ? { text } : null);
+
+    // Första gången: visa hur OBS ställs in.
+    if (!hadSession) document.getElementById("obs-setup").open = true;
+  }
+
+  window.addEventListener("pywebviewready", start);
+  start();
+
+  // Öppnad i en vanlig webbläsare i stället för i appen.
+  setTimeout(() => {
+    if (!api) document.getElementById("no-app").hidden = false;
+  }, 2000);
+})();
+</script>
+</body>
+</html>

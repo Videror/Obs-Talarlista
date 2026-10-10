@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBS Talaroverlay – Kommunfullmäktige</title>
+<style>
+  /* Ändra mått och färger här. Måtten gäller en källa på 1920 × 1080. */
+  :root {
+    --bottom: 56px;            /* avstånd från nederkanten */
+    --height: 128px;           /* textrutans höjd */
+    --speaker-height: 96px;    /* talarrutans minsta höjd (växer uppåt vid långa namn) */
+    --text-width: 1040px;      /* textrutans bredd när en talare visas */
+    --text-width-wide: 1640px; /* textrutans bredd utan talare (om det är påslaget i appen) */
+    --gap: 16px;               /* mellanrum mellan talare och textruta */
+    --edge: 24px;              /* minsta avstånd till vänsterkanten */
+
+    --dark: #1b1b1b;           /* loggans svarta fält */
+    --light: #f1f1f1;          /* rutornas ljusa fält */
+    --ink: #333333;            /* text */
+    --label: #6b6b6b;          /* "Talare" */
+    --divider: #cfcfcf;
+    --font: "Times New Roman", Times, Georgia, serif;
+
+    /* Pausskärmens bakgrund när ingen bild eller video är vald */
+    --pause-background: radial-gradient(ellipse at center, #22324a 0%, #0c1320 75%);
+    /* Pausskärmens text */
+    --pause-font: "Segoe UI", Arial, Helvetica, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  [hidden] { display: none !important; }
+
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: var(--font);
+    color: var(--ink);
+  }
+
+  .box {
+    position: absolute;
+    bottom: var(--bottom);
+    display: flex;
+    background: var(--light);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      opacity 400ms ease,
+      transform 400ms ease;
+  }
+
+  .box.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ---------- Textrutan, alltid i mitten ---------- */
+
+  #textbox {
+    height: var(--height);
+    left: 50%;
+    width: var(--text-width);
+    transform: translate(-50%, 8px);
+    transition:
+      opacity 400ms ease,
+      transform 400ms ease,
+      width 400ms ease;
+  }
+
+  #textbox.visible {
+    transform: translate(-50%, 0);
+  }
+
+  /* Bredare när ingen talare visas */
+  #textbox.wide {
+    width: var(--text-width-wide);
+  }
+
+  #logo {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 40px;
+    background: var(--dark);
+  }
+
+  #logo img {
+    display: block;
+    height: 70%;
+    width: auto;
+  }
+
+  #text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 12px 40px 12px 44px;
+    overflow: hidden;
+  }
+
+  #text p {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- Talare, till vänster om textrutan ---------- */
+
+  /* Talarrutan är lägre än textrutan men växer uppåt om namnet
+     behöver flera rader. Underkanten står kvar i linje med textrutan. */
+  #speaker {
+    right: calc(50% + var(--text-width) / 2 + var(--gap));
+    max-width: calc(50% - var(--text-width) / 2 - var(--gap) - var(--edge));
+    min-height: var(--speaker-height);
+    align-items: center;
+    padding: 12px 22px 12px 18px;
+    border-left: 8px solid var(--dark);
+  }
+
+  #iconwrap {
+    flex: none;
+    margin-right: 16px;
+    padding-right: 16px;
+    border-right: 1px solid var(--divider);
+  }
+
+  #icon {
+    display: block;
+    height: 50px;
+    width: auto;
+    max-width: 72px;
+    object-fit: contain;
+  }
+
+  #speaker-text {
+    min-width: 0;
+  }
+
+  #label {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--label);
+    font-size: 17px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  #name {
+    display: block;
+    font-size: 30px;
+    line-height: 1.15;
+    overflow-wrap: break-word;
+  }
+
+  /* ---------- Pausskärm, täcker hela bilden ---------- */
+
+  #pause {
+    --zoom: 1;
+    --blur: 14px;
+    --blur-scale: 1.06;
+    --logo-size: 260px;
+    --logo-y: 40%;
+    --text-size: 64px;
+    --text-y: 72%;
+    --text-box: 0.6;
+
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    overflow: hidden;
+    background: var(--pause-background);
+    pointer-events: none;
+
+    opacity: 0;
+    transition: opacity 600ms ease;
+  }
+
+  #pause.visible {
+    opacity: 1;
+  }
+
+  #pause-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  /* Bilden eller videon täcker hela ytan utan att ändra form. */
+  #pause-bg > * {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(var(--zoom));
+    transition: filter 300ms ease, transform 300ms ease;
+  }
+
+  /* Oskärpa. Bilden förstoras lite så att de suddiga kanterna inte syns. */
+  #pause.blur #pause-bg > * {
+    filter: blur(var(--blur));
+    transform: scale(calc(var(--zoom) * var(--blur-scale)));
+  }
+
+  #pause-logo {
+    position: absolute;
+    left: 50%;
+    top: var(--logo-y);
+    height: var(--logo-size);
+    width: auto;
+    max-width: 90%;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.45));
+  }
+
+  #pause-text {
+    position: absolute;
+    left: 50%;
+    top: var(--text-y);
+    width: max-content;
+    max-width: 88%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-family: var(--pause-font);
+    font-size: var(--text-size);
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65);
+  }
+
+  /* Svart ruta bakom texten, med valbar genomskinlighet */
+  #pause-text.boxed {
+    padding: 0.3em 0.8em;
+    background: rgba(0, 0, 0, var(--text-box));
+    border-radius: 6px;
+    text-shadow: none;
+  }
+
+  #pause-text:empty {
+    display: none;
+  }
+
+  /* Förhandsvisningen i appen visar bara pausskärmen. */
+  body.preview #speaker,
+  body.preview #textbox {
+    display: none;
+  }
+
+  body.preview #pause {
+    opacity: 1;
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .box,
+    #textbox,
+    #pause {
+      transition-duration: 0ms;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="speaker" class="box" aria-live="polite">
+    <div id="iconwrap" hidden>
+      <img id="icon" alt="">
+    </div>
+    <div id="speaker-text">
+      <span id="label">Talare</span>
+      <span id="name"></span>
+    </div>
+  </div>
+
+  <div id="textbox" class="box" aria-live="polite">
+    <div id="logo">
+      <img src="ikoner/bodens-kommun-logotyp-beskuren.png" alt="Bodens kommun">
+    </div>
+    <div id="text"><p id="text-content"></p></div>
+  </div>
+
+  <div id="pause">
+    <div id="pause-bg"></div>
+    <img id="pause-logo" alt="" hidden>
+    <div id="pause-text"></div>
+  </div>
+
+<script src="partier.js"></script>
+<script>
+(() => {
+  // Appen skriver vad som ska visas till den här filen.
+  const STATE_FILE = "data/aktuell_visning.json";
+  const POLL_MS = 250;
+  const FADE_MS = 400;
+  const MAX_NAME = 80;
+  const MAX_TEXT = 200;
+  const VIDEO = /\.(mp4|webm|mov|m4v|ogv)$/i;
+  const PARTIES = Array.isArray(window.PARTIER) ? window.PARTIER : [];
+  // overlay.html?preview visas i appens förhandsvisning av pausskärmen.
+  const PREVIEW = new URLSearchParams(location.search).has("preview");
+
+  const speakerBox = document.getElementById("speaker");
+  const nameEl = document.getElementById("name");
+  const iconWrap = document.getElementById("iconwrap");
+  const icon = document.getElementById("icon");
+  const textBox = document.getElementById("textbox");
+  const textArea = document.getElementById("text");
+  const textEl = document.getElementById("text-content");
+  const pause = document.getElementById("pause");
+  const pauseBg = document.getElementById("pause-bg");
+  const pauseLogo = document.getElementById("pause-logo");
+  const pauseText = document.getElementById("pause-text");
+
+  document.body.classList.toggle("preview", PREVIEW);
+
+  function clean(text, maxLength) {
+    return typeof text === "string"
+      ? text.replace(/\s+/g, " ").trim().slice(0, maxLength)
+      : "";
+  }
+
+  function number(value, min, max, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+  }
+
+  // Sökvägar som "paus/Min bild.jpg" görs om till giltiga adresser.
+  function fileUrl(path) {
+    return path.split("/").map(encodeURIComponent).join("/");
+  }
+
+  // Minskar teckenstorleken tills texten får plats i rutan.
+  function fitText(el, container, maxSize, minSize, fits) {
+    let size = maxSize;
+    el.style.fontSize = `${size}px`;
+    while (size > minSize && !fits(el, container)) {
+      size -= 1;
+      el.style.fontSize = `${size}px`;
+    }
+  }
+
+  /* ---------- Ikoner ---------- */
+
+  // Visa inte en trasig bildruta om ikonfilen saknas.
+  icon.addEventListener("error", () => {
+    iconWrap.hidden = true;
+  });
+
+  // Ladda alla partiikoner direkt så att de finns redo vid byte.
+  const preloaded = new Map();
+  PARTIES.forEach(party => {
+    if (!party.ikon) return;
+    const img = new Image();
+    img.src = party.ikon;
+    preloaded.set(party.id, img);
+  });
+
+  // Väntar tills bilden är laddad, men aldrig längre än en stund.
+  function waitForImage(img, ms) {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve(true);
+    const ready = new Promise(resolve => {
+      img.addEventListener("load", () => resolve(true), { once: true });
+      img.addEventListener("error", () => resolve(false), { once: true });
+    });
+    const timeout = new Promise(resolve => setTimeout(() => resolve(false), ms));
+    return Promise.race([ready, timeout]);
+  }
+
+  async function setIcon(partyId) {
+    const party = PARTIES.find(p => p.id === partyId);
+    const cached = party && party.ikon ? preloaded.get(party.id) : null;
+
+    if (!cached || !(await waitForImage(cached, 1500))) {
+      iconWrap.hidden = true;
+      icon.removeAttribute("src");
+      return;
+    }
+
+    icon.src = cached.src;
+    await waitForImage(icon, 500);
+    iconWrap.hidden = false;
+  }
+
+  /* ---------- Tona ut, byt innehåll, tona in ---------- */
+
+  // En "plats" på skärmen som byter innehåll med en övergång.
+  // fill(data) ritar in nytt innehåll, eller tömmer platsen om data är null.
+  function createSlot(box, fill) {
+    let targetKey = null;
+    let transitionId = 0;
+
+    return function show(key, data) {
+      // Jämför med det vi är på väg mot, inte det som syns nu.
+      if (key === targetKey) return;
+      const first = targetKey === null;
+      targetKey = key;
+      const id = ++transitionId;
+
+      box.classList.remove("visible");
+
+      window.setTimeout(async () => {
+        // Ignorera äldre övergångar om det klickas snabbt.
+        if (id !== transitionId) return;
+
+        if (!key) {
+          await fill(null);
+          return;
+        }
+
+        await fill(data);
+        if (id !== transitionId) return;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (id === transitionId) box.classList.add("visible");
+          });
+        });
+      }, first ? 0 : FADE_MS);
+    };
+  }
+
+  function fitTextbox() {
+    fitText(textEl, textArea, 32, 20,
+      (el, area) => el.offsetHeight <= area.clientHeight - 24);
+  }
+
+  // Mät om ifall källans storlek ändras i OBS.
+  window.addEventListener("resize", fitTextbox);
+
+  const showSpeaker = createSlot(speakerBox, async data => {
+    if (!data) {
+      nameEl.textContent = "";
+      await setIcon("");
+      return;
+    }
+    await setIcon(data.party);
+    // Namnet sätts med textContent, så HTML tolkas aldrig.
+    // Långa namn bryts på flera rader och rutan växer uppåt.
+    nameEl.textContent = data.name;
+  });
+
+  const showText = createSlot(textBox, async data => {
+    textEl.textContent = data ? data.text : "";
+    if (data) fitTextbox();
+  });
+
+  /* ---------- Bredare textruta utan talare ---------- */
+
+  let wideTarget = null;
+  let wideTimer = 0;
+
+  function setWide(wide) {
+    if (wide === wideTarget) return;
+    const first = wideTarget === null;
+    wideTarget = wide;
+    window.clearTimeout(wideTimer);
+
+    // Smalna av direkt när en talare kommer, men bredda först
+    // när talarrutan hunnit tona ut.
+    wideTimer = window.setTimeout(() => {
+      textBox.classList.toggle("wide", wide);
+      // Anpassa textstorleken när bredden har ändrats klart.
+      window.setTimeout(fitTextbox, FADE_MS + 20);
+    }, wide && !first ? FADE_MS : 0);
+  }
+
+  /* ---------- Pausskärm ---------- */
+
+  let pauseKey = "";
+  let backgroundPath = null;
+  let logoPath = null;
+
+  function setBackground(path) {
+    if (path === backgroundPath) return;
+    backgroundPath = path;
+    pauseBg.replaceChildren();
+    if (!path) return;
+
+    let media;
+    if (VIDEO.test(path)) {
+      media = document.createElement("video");
+      media.muted = true;
+      media.loop = true;
+      media.autoplay = true;
+      media.playsInline = true;
+    } else {
+      media = document.createElement("img");
+      media.alt = "";
+    }
+    media.addEventListener("error", () => media.remove());
+    media.src = fileUrl(path);
+    pauseBg.append(media);
+    updateVideo();
+  }
+
+  // Videon spelas bara när pausskärmen syns, så att OBS inte jobbar i onödan.
+  function updateVideo() {
+    const video = pauseBg.querySelector("video");
+    if (!video) return;
+    if (PREVIEW || pause.classList.contains("visible")) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }
+
+  function setLogo(path) {
+    if (path === logoPath) return;
+    logoPath = path;
+    if (path) {
+      pauseLogo.src = fileUrl(path);
+      pauseLogo.hidden = false;
+    } else {
+      pauseLogo.removeAttribute("src");
+      pauseLogo.hidden = true;
+    }
+  }
+
+  pauseLogo.addEventListener("error", () => {
+    pauseLogo.hidden = true;
+  });
+
+  function applyPause(settings) {
+    const p = settings && typeof settings === "object" ? settings : {};
+    const key = JSON.stringify(p);
+    if (key === pauseKey) return;
+    pauseKey = key;
+
+    const blur = number(p.blurAmount, 0, 60, 14);
+    pause.style.setProperty("--zoom", number(p.zoom, 100, 400, 100) / 100);
+    pause.style.setProperty("--blur", `${blur}px`);
+    // Ju mer oskärpa, desto mer förstoras bilden så att kanterna inte blir suddiga.
+    pause.style.setProperty("--blur-scale", 1 + (blur * 4) / 1080);
+    pause.style.setProperty("--logo-size", `${number(p.logoSize, 20, 1000, 260)}px`);
+    pause.style.setProperty("--logo-y", `${number(p.logoY, 0, 100, 40)}%`);
+    pause.style.setProperty("--text-size", `${number(p.textSize, 12, 240, 64)}px`);
+    pause.style.setProperty("--text-y", `${number(p.textY, 0, 100, 72)}%`);
+    pause.style.setProperty("--text-box", number(p.textBoxOpacity, 0, 100, 60) / 100);
+    pause.classList.toggle("blur", Boolean(p.blur) && blur > 0);
+
+    pauseText.textContent = typeof p.text === "string" ? p.text.trim() : "";
+    pauseText.classList.toggle("boxed", Boolean(p.textBox));
+    setLogo(typeof p.logo === "string" ? p.logo : "");
+    setBackground(typeof p.background === "string" ? p.background : "");
+
+    if (!PREVIEW) pause.classList.toggle("visible", Boolean(p.visible));
+    updateVideo();
+  }
+
+  /* ---------- Läs av filen från appen ---------- */
+
+  // Det spelar ingen roll om appen eller OBS startas först.
+  async function poll() {
+    try {
+      const response = await fetch(`${STATE_FILE}?t=${Date.now()}`, { cache: "no-store" });
+      if (response.ok) {
+        const state = await response.json();
+        const speaker = state.talare || {};
+        const name = clean(speaker.name, MAX_NAME);
+        const party = typeof speaker.party === "string" ? speaker.party : "";
+        showSpeaker(name ? `${name}|${party}` : "", { name, party });
+
+        const text = clean((state.textruta || {}).text, MAX_TEXT);
+        showText(text, { text });
+
+        const options = state.installningar || {};
+        setWide(options.autoBredd !== false && !name);
+
+        applyPause(state.paus);
+      }
+    } catch (error) {
+      // Filen skrivs just nu eller finns inte än – försök igen strax.
+    }
+    window.setTimeout(poll, POLL_MS);
+  }
+
+  if (PREVIEW) {
+    // Appen skickar inställningarna direkt medan man drar i reglagen.
+    window.addEventListener("message", event => {
+      if (event.origin !== location.origin) return;
+      if (event.data && event.data.type === "paus") applyPause(event.data.settings);
+    });
+    window.parent.postMessage({ type: "preview-ready" }, location.origin);
+  } else {
+    poll();
+  }
+})();
+</script>
+</body>
+</html>

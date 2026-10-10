@@ -1,0 +1,28 @@
+{
+  "talare": {
+    "name": "",
+    "party": ""
+  },
+  "textruta": {
+    "text": ""
+  },
+  "installningar": {
+    "autoBredd": true
+  },
+  "paus": {
+    "visible": false,
+    "text": "Sändningen återupptar 18:20",
+    "textSize": 117,
+    "textY": 76,
+    "textBox": true,
+    "textBoxOpacity": 73,
+    "logo": "ikoner/bodens-kommun-logotyp-bättrekvalitet.png",
+    "logoSize": 370,
+    "logoY": 36,
+    "background": "bilder/bakgrundsbild1.jpg",
+    "zoom": 100,
+    "blur": true,
+    "blurAmount": 4
+  },
+  "updatedAt": 1791653003.0974555
+}
